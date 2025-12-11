@@ -1,0 +1,11 @@
+item_id,score,title,release_date,imdb_url,unknown,Action,Adventure,Animation,Childrens,Comedy,Crime,Documentary,Drama,Fantasy,Film-Noir,Horror,Musical,Mystery,Romance,Sci-Fi,Thriller,War,Western
+430,4.494370432743951,Duck Soup (1933),01-Jan-1933,http://us.imdb.com/M/title-exact?Duck%20Soup%20(1933),0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0
+462,4.492819487046423,Like Water For Chocolate (Como agua para chocolate) (1992),01-Jan-1992,http://us.imdb.com/M/title-exact?Como%20agua%20para%20chocolate%20(1992),0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0
+463,4.49036966450047,"Secret of Roan Inish, The (1994)",01-Jan-1994,"http://us.imdb.com/M/title-exact?Secret%20of%20Roan%20Inish,%20The%20(1994)",0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+276,4.487968088017331,Leaving Las Vegas (1995),01-Jan-1995,http://us.imdb.com/M/title-exact?Leaving%20Las%20Vegas%20(1995),0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0
+297,4.464665269918136,Ulee's Gold (1997),01-Jan-1997,http://us.imdb.com/M/title-exact?Ulee%27s+Gold+(1997),0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0
+302,4.455506803713754,L.A. Confidential (1997),01-Jan-1997,http://us.imdb.com/M/title-exact?L%2EA%2E+Confidential+(1997),0,0,0,0,0,0,1,0,0,0,1,0,0,1,0,0,1,0,0
+515,4.446043291440978,"Boot, Das (1981)",04-Apr-1997,"http://us.imdb.com/M/title-exact?Boot,%20Das%20(1981)",0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0
+936,4.43244562364027,Brassed Off (1996),13-Jun-1997,http://us.imdb.com/M/title-exact?Brassed%20Off%20%281996%29,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0
+645,4.421320266369847,Paris Is Burning (1990),01-Jan-1990,http://us.imdb.com/M/title-exact?Paris%20Is%20Burning%20(1990),0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0
+408,4.417772142398474,"Close Shave, A (1995)",28-Apr-1996,"http://us.imdb.com/M/title-exact?Close%20Shave,%20A%20(1995)",0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0

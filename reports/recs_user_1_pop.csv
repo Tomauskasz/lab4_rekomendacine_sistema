@@ -1,0 +1,11 @@
+item_id,count,score,title,release_date,imdb_url,unknown,Action,Adventure,Animation,Childrens,Comedy,Crime,Documentary,Drama,Fantasy,Film-Noir,Horror,Musical,Mystery,Romance,Sci-Fi,Thriller,War,Western
+294,472,3.156779661016949,Liar Liar (1997),21-Mar-1997,http://us.imdb.com/Title?Liar+Liar+(1997),0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+286,466,3.663090128755365,"English Patient, The (1996)",15-Nov-1996,"http://us.imdb.com/M/title-exact?English%20Patient,%20The%20(1996)",0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,1,0
+288,464,3.4418103448275863,Scream (1996),20-Dec-1996,http://us.imdb.com/M/title-exact?Scream%20(1996),0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0
+300,421,3.634204275534442,Air Force One (1997),01-Jan-1997,http://us.imdb.com/M/title-exact?Air+Force+One+(1997),0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0
+405,344,3.313953488372093,Mission: Impossible (1996),22-May-1996,http://us.imdb.com/M/title-exact?Mission:%20Impossible%20(1996),0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0
+313,341,4.266862170087976,Titanic (1997),01-Jan-1997,http://us.imdb.com/M/title-exact?imdb-title-120338,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0
+748,309,3.116504854368932,"Saint, The (1997)",14-Mar-1997,http://us.imdb.com/M/title-exact?Saint%2C%20The%20(1997),0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0
+423,300,3.8333333333333335,E.T. the Extra-Terrestrial (1982),01-Jan-1982,http://us.imdb.com/M/title-exact?E%2ET%2E%20the%20Extra-Terrestrial%20%281982%29,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,1,0,0,0
+318,297,4.4646464646464645,Schindler's List (1993),01-Jan-1993,http://us.imdb.com/M/title-exact?Schindler's%20List%20(1993),0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0
+276,297,3.7003367003367003,Leaving Las Vegas (1995),01-Jan-1995,http://us.imdb.com/M/title-exact?Leaving%20Las%20Vegas%20(1995),0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0

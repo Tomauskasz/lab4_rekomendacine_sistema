@@ -1,0 +1,34 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# Data and artifacts
+data/raw/
+data/processed/
+reports/
+
+# Python / Jupyter
+.ipynb_checkpoints/
+*.ipynb_convert/
+
+# Streamlit
+.streamlit/
+
+# Logs
+*.log
+
+# OS junk
+Thumbs.db
+.DS_Store
