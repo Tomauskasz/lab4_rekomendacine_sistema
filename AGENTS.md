@@ -52,8 +52,8 @@ Statusai: Todo / In-Progress / Done. Atnaujink kai tik kas pasikeicia.
 | 6  | Pazangus modelis (SVD / LightFM)           | Todo       | SVD per Surprise atmestas; LightFM opcion. (reiktu atskiro setup). |
 | 7  | Metrikos skaiciavimas                      | Done       | Grid (k 20..600, mc=ON): plateau ties k~400-440, geriausia p@10=0.0431 r@10=0.0428 MAE=0.7183; user-sample(20): p@10~0.04 r@10~0.0301. Default k=440, mc=ON. |
 | 8  | Rekomendaciju generavimas (>=5 per user)   | Done       | UI generuoja top-N + baseline; CSV eksportas; pavyzdziai `reports/recs_user_1_model.csv` ir `reports/recs_user_1_pop.csv`. |
-| 9  | Vizualizacija / UI (Streamlit)             | Done       | UI atnaujintas; baseline, CSV eksportas, screenshot `reports/streamlit.png`. |
-| 10 | Dokumentacija (README) + refleksija        | Done       | README atnaujintas (rezultatai, ribos, refleksija) + screenshot. |
+| 9  | Vizualizacija / UI (Streamlit)             | Done       | UI atnaujintas; baseline, CSV eksportas, screenshotai `reports/streamlit_main|recs|metrics.png`. |
+| 10 | Dokumentacija (README) + refleksija        | Done       | README atnaujintas (rezultatai, ribos, refleksija) + screenshotai. |
 | 11 | Galutinis patikrinimas / svarus kodas      | Done       | Streamlit startuoja; README/AGENTS/screenshot/CSV tvarkoje; .streamlit/config pridetas. |
 
 ## 5. Detalios instrukcijos kiekvienam etapui

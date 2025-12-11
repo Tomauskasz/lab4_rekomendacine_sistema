@@ -30,7 +30,7 @@
 - `data/` - atsisiusti ir apdoroti duomenys.
 - `reports/` - vieta rezultatams (jei generuosi).
 - `AGENTS.md` - planas ir zurnalas.
-- `reports/streamlit.png` - ekrano kopija.
+- `reports/streamlit_main.png` / `streamlit_recs.png` / `streamlit_metrics.png` - ekrano kopijos.
 
 ## Zinomos ribos
 - Kol kas tik item-KNN; SVD/LightFM neitraukti del Windows build issue.
