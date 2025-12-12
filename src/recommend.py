@@ -9,7 +9,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from .models import ItemKNNModel
+from .models import ContentTFIDFModel, ItemKNNModel
 
 
 def recommend_top_n(
@@ -35,6 +35,48 @@ def recommend_top_n(
         scores = scores + user_mean
 
     # exclude seen items
+    scores[seen_idx] = -np.inf
+
+    top_idx = np.argpartition(-scores, n)[:n]
+    top_idx = top_idx[np.argsort(-scores[top_idx])]
+
+    rec_df = pd.DataFrame(
+        {
+            "item_id": [model.inv_item_map[i] for i in top_idx],
+            "score": scores[top_idx],
+        }
+    )
+    if items_catalog is not None and item_id_col in items_catalog.columns:
+        rec_df = rec_df.merge(items_catalog, left_on="item_id", right_on=item_id_col, how="left")
+    return rec_df
+
+
+def recommend_content_tfidf(
+    model: ContentTFIDFModel,
+    user_raw_id: int,
+    n: int = 5,
+    items_catalog: Optional[pd.DataFrame] = None,
+    item_id_col: str = "item_id",
+) -> pd.DataFrame:
+    """
+    Content-based recommendations using TF-IDF genre vectors.
+    """
+    seen_idx, seen_ratings = model.seen_items(user_raw_id)
+    if len(seen_idx) == 0:
+        return pd.DataFrame(columns=["item_id", "score"])
+
+    # Weight liked genres more; center by global mean to allow negative signals.
+    weights = np.array(seen_ratings, dtype=float) - model.global_mean
+    if np.allclose(weights, 0):
+        weights = np.array(seen_ratings, dtype=float)
+    item_feats = model.item_features[seen_idx]
+    weighted_profile = weights @ item_feats
+    if np.allclose(weighted_profile, 0):
+        weighted_profile = item_feats.mean(axis=0)
+    user_profile = weighted_profile / (np.linalg.norm(weighted_profile) + 1e-8)
+
+    scores = model.item_features.dot(user_profile)
+    scores = np.asarray(scores).ravel()
     scores[seen_idx] = -np.inf
 
     top_idx = np.argpartition(-scores, n)[:n]

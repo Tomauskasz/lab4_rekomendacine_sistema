@@ -28,15 +28,13 @@
 - `src/` - duomenu ikelimas, preprocess, modelis, metrikos, viz.
 - `notebooks/01_eda.ipynb` - EDA karkasas.
 - `data/` - atsisiusti ir apdoroti duomenys.
-- `reports/` - vieta rezultatams (jei generuosi).
-- `AGENTS.md` - planas ir zurnalas.
-- `reports/streamlit_main.png` / `streamlit_recs.png` / `streamlit_metrics.png` - ekrano kopijos.
+- `reports/` - vieta csv rekomendaciju rezultatams 
 
 ## Zinomos ribos
-- Kol kas tik item-KNN; SVD/LightFM neitraukti del Windows build issue.
-- Metrikos dar kuklios, bet pagerintos po k-pruning ir mean-centering. Toliau verta isbandyti pazangesni model (pvz., SVD/LightFM kitoje aplinkoje) arba papildomas features.
+- Kol kas tik item-KNN.
+- Metrikos dar kuklios, bet pagerintos po k-pruning ir mean-centering. Toliau verta isbandyti pažangesnį modelį (SVD/ALS per `implicit` Linux/WSL) arba turinio požymius (žanrų TF-IDF).
 
-## Rezultatu suvestine (2025-12-11)
+## Rezultatu suvestine
 - Filtrai: min_user=20, min_item=20; split 90/10, val=0, seed=42.
 - Geriausia kombinacija pagal globalias metrikas (plateau 400-440): mean-center ON, k=440, p@10=0.0431, r@10=0.0428, MAE=0.7183.
 - User-sample (20 vartotoju) vidurkiai: p@10~0.04, r@10~0.0301 ties k=400-440.

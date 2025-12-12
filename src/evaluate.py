@@ -4,7 +4,7 @@ Evaluation helpers for item-based CF (cosine similarity).
 
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Any, Callable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -14,17 +14,20 @@ from .models import ItemKNNModel
 
 
 def precision_recall_at_k(
-    model: ItemKNNModel,
+    model: Any,
     test_df: pd.DataFrame,
     k: int = 10,
     user_col: str = "user_id",
     item_col: str = "item_id",
     rating_col: str = "rating",
     threshold: float = 3.5,
+    recommender: Callable[[Any, int, int], pd.DataFrame] | None = None,
 ) -> Tuple[float, float]:
     """
-    Compute mean Precision@K and Recall@K over users present in test_df.
+    Compute mean Precision@K and Recall@K over users present in test_df
+    using a provided recommender function (defaults to Item-KNN recommender).
     """
+    rec_fn = recommender or recommend_top_n
     by_user = test_df.groupby(user_col)
     precisions = []
     recalls = []
@@ -32,7 +35,7 @@ def precision_recall_at_k(
         true_positive_items = set(grp.loc[grp[rating_col] >= threshold, item_col])
         if not true_positive_items:
             continue
-        recs = recommend_top_n(model, user_raw_id=int(uid), n=k)
+        recs = rec_fn(model, user_raw_id=int(uid), n=k)
         rec_items = set(recs["item_id"].tolist())
         hits = true_positive_items & rec_items
         precisions.append(len(hits) / max(len(rec_items), 1))
@@ -80,25 +83,12 @@ def recommend_top_k_for_eval(model: ItemKNNModel, user_raw_id: int, k: int = 10)
     """
     Lightweight helper to return only item ids for evaluation sampling.
     """
-    seen_idx, seen_ratings = model.seen_items(user_raw_id)
-    if len(seen_idx) == 0:
-        return []
-    sim_mat = model.item_similarity
-    weights = sim_mat[:, seen_idx]
-    numerator = weights.dot(seen_ratings)
-    denom = weights.sum(axis=1) + 1e-8
-    scores = numerator / denom
-    if model.mean_center:
-        user_mean = model.user_means.get(user_raw_id, model.global_mean)
-        scores = scores + user_mean
-    scores[seen_idx] = -np.inf
-    top_idx = np.argpartition(-scores, k)[:k]
-    top_idx = top_idx[np.argsort(-scores[top_idx])]
-    return [model.inv_item_map[i] for i in top_idx]
+    recs = recommend_top_n(model, user_raw_id=user_raw_id, n=k)
+    return recs["item_id"].tolist()
 
 
 def sampled_user_precision_recall(
-    model: ItemKNNModel,
+    model: Any,
     test_df: pd.DataFrame,
     users: list[int],
     k: int = 10,
@@ -106,17 +96,20 @@ def sampled_user_precision_recall(
     item_col: str = "item_id",
     rating_col: str = "rating",
     threshold: float = 3.5,
+    recommender: Callable[[Any, int, int], pd.DataFrame] | None = None,
 ) -> tuple[float, float]:
     """
     Compute mean precision/recall over pasirinktus vartotojus.
     """
+    rec_fn = recommender or recommend_top_n
     user_prec = []
     user_rec = []
     for u in users:
         user_true = test_df[test_df[user_col] == u]
         if user_true.empty:
             continue
-        rec_items = recommend_top_k_for_eval(model, u, k=k)
+        recs = rec_fn(model, user_raw_id=u, n=k)
+        rec_items = recs["item_id"].tolist()
         true_pos = set(user_true.loc[user_true[rating_col] >= threshold, item_col])
         hits = true_pos & set(rec_items)
         if rec_items:
