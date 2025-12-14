@@ -56,6 +56,10 @@ UI yra „demo“ stiliaus: jis skirtas greitai pamatyti, kaip modelis elgiasi r
 ### 3.1 Vizualus atvaizdavimas (diagram)
 Žemiau – **sistemos duomenų srautas** nuo duomenų iki rekomendacijų:
 
+![Sistemos duomenų srautas](./images/flow.png)
+
+Tekstinis variantas (jei paveikslas nerenderina):
+
 ```
 MovieLens 1M ZIP
    |

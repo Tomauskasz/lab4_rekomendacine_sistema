@@ -98,17 +98,34 @@ def prepare_content_tfidf_base(
     n_items = len(items)
     user_item = csr_matrix((ratings, (rows, cols)), shape=(n_users, n_items))
 
-    genre_cols = [
-        c
-        for c in items_df.columns
-        if c
-        not in {
-            item_col,
-            "title",
-            "release_date",
-            "imdb_url",
-        }
-    ]
+    exclude_cols = {
+        item_col,
+        "title",
+        "release_date",
+        "imdb_url",
+        # UI/enrichment cols (non-numeric)
+        "poster_url",
+        "imdb_id",
+        "label",
+        "genres",
+        # safety: avoid accidental merge columns
+        "score",
+        "mean_rating",
+        "count",
+    }
+
+    genre_cols = []
+    for c in items_df.columns:
+        if c in exclude_cols:
+            continue
+        # Keep only numeric/bool columns (genre one-hot etc.)
+        if not (
+            pd.api.types.is_bool_dtype(items_df[c])
+            or pd.api.types.is_integer_dtype(items_df[c])
+            or pd.api.types.is_float_dtype(items_df[c])
+        ):
+            continue
+        genre_cols.append(c)
     if not genre_cols:
         genre_cols = ["dummy_feature"]
         items_df = items_df.assign(dummy_feature=1)
@@ -117,7 +134,15 @@ def prepare_content_tfidf_base(
     meta = meta[meta[item_col].isin(items)]
     meta = meta.set_index(item_col).reindex(items)
 
-    genre_matrix = csr_matrix(meta[genre_cols].fillna(0).to_numpy(dtype=float))
+    genre_df = meta[genre_cols].copy()
+    for c in genre_df.columns:
+        if not (
+            pd.api.types.is_bool_dtype(genre_df[c])
+            or pd.api.types.is_integer_dtype(genre_df[c])
+            or pd.api.types.is_float_dtype(genre_df[c])
+        ):
+            genre_df[c] = pd.to_numeric(genre_df[c], errors="coerce")
+    genre_matrix = csr_matrix(genre_df.fillna(0).to_numpy(dtype=float))
     genre_tfidf = TfidfTransformer().fit_transform(genre_matrix)
 
     titles = meta["title"].fillna("").astype(str)
