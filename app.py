@@ -178,36 +178,6 @@ def fetch_omdb_poster(title: str, year: int | None, api_key: str, imdb_id: str |
     return None
 
 
-@st.cache_data(show_spinner=False, ttl=60 * 60)
-def fetch_tmdb_poster(title: str, year: int | None, api_key: str) -> str | None:
-    if not api_key or not title:
-        return None
-    title_clean = canonical_title(title)
-    try:
-        params = {"api_key": api_key, "query": title_clean or title, "include_adult": False}
-        if year:
-            params["year"] = year
-        resp = requests.get("https://api.themoviedb.org/3/search/movie", params=params, timeout=6)
-        data = resp.json()
-        results = data.get("results") or []
-        best = None
-        if year:
-            for r in results:
-                try:
-                    if r.get("release_date", "")[:4] == str(year):
-                        best = r
-                        break
-                except Exception:
-                    continue
-        if not best and results:
-            best = results[0]
-        if best and best.get("poster_path"):
-            return f"https://image.tmdb.org/t/p/w342{best['poster_path']}"
-    except Exception:
-        return None
-    return None
-
-
 def canonical_title(title: str | None) -> str:
     if not title or not isinstance(title, str):
         return ""
@@ -248,8 +218,6 @@ def render_recommendations(
     top_n: int,
     use_omdb: bool = False,
     omdb_api_key: str | None = None,
-    use_tmdb: bool = False,
-    tmdb_api_key: str | None = None,
 ):
     if recs.empty:
         st.info("Nerasta rekomendaciju su dabartiniais nustatymais.")
@@ -268,14 +236,6 @@ def render_recommendations(
                 )
                 if omdb_url:
                     poster_url = omdb_url
-            if (not poster_url or poster_url.startswith("https://placehold")) and use_tmdb and tmdb_api_key:
-                tmdb_url = fetch_tmdb_poster(
-                    title=row.get("title", ""),
-                    year=parse_year(row.get("release_date")),
-                    api_key=tmdb_api_key,
-                )
-                if tmdb_url:
-                    poster_url = tmdb_url
             if not poster_url:
                 poster_url = f"https://placehold.co/240x360/2b65d9/ffffff?text={quote_plus(row.get('title','Movie')[:30])}"
             st.markdown(
@@ -299,16 +259,16 @@ def split_train_test(ratings: pd.DataFrame, test_size: float = 0.1):
 
 def main():
     apply_css()
-    st.title("Personalizuotos filmu rekomendacijos (MovieLens 100K)")
+    st.title("Personalizuotos filmu rekomendacijos (MovieLens 1M)")
     st.markdown(
         """
         <div class="glass">
           <div class="hero-title">Atrask filmus pagal savo skoni&mdash;nuo bendruomenės balų iki turinio nuotaikų.</div>
           <div class="hero-sub">Item-KNN ir turinio TF-IDF (zanrai+pavadinimai+pop) be kompiliuojamų priklausomybių.</div>
           <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-            <span class="metric-pill">MovieLens 100K</span>
-            <span class="metric-pill">Item-KNN p@10=0.0431, r@10=0.0428</span>
-            <span class="metric-pill">TF-IDF best p@10=0.0362, r@10=0.0556</span>
+            <span class="metric-pill">MovieLens 1M</span>
+            <span class="metric-pill">Item-KNN p@10=0.0152, r@10=0.0070</span>
+            <span class="metric-pill">TF-IDF p@10=0.0357, r@10=0.0481</span>
           </div>
         </div>
         """,
@@ -325,28 +285,19 @@ def main():
             (model_cf, model_content),
             index=0,
         )
-        limit = st.slider("Naudoti tik pirmas N eiluciu (0 = visas rinkinys)", 0, 100_000, 0, step=10_000)
+        limit = st.slider("Naudoti tik pirmas N eiluciu (0 = visas rinkinys)", 0, 1_000_000, 0, step=50_000)
         limit = None if limit == 0 else limit
         min_user = st.number_input("Min. ivykiai vienam vartotojui", 1, 50, 20, 1)
         min_item = st.number_input("Min. ivykiai vienam filmui", 1, 50, 20, 1)
         omdb_secret = None
-        tmdb_secret = None
         try:
             omdb_secret = st.secrets.get("omdb", {}).get("api_key")  # type: ignore[attr-defined]
         except Exception:
             omdb_secret = None
-        try:
-            tmdb_secret = st.secrets.get("tmdb", {}).get("api_key")  # type: ignore[attr-defined]
-        except Exception:
-            tmdb_secret = None
         use_omdb = st.checkbox(
             "Naudoti OMDb plakatus (reikalingas API raktas)", value=bool(omdb_secret)
         )
-        use_tmdb = st.checkbox(
-            "Naudoti TMDB plakatus (reikalingas API raktas)", value=bool(tmdb_secret)
-        )
         omdb_api_key = None
-        tmdb_api_key = None
         if use_omdb:
             if omdb_secret:
                 st.caption("Naudojamas raktas is .streamlit/secrets.toml (gali perrasyti zemiau).")
@@ -356,20 +307,11 @@ def main():
                 value="" if omdb_secret else "",
             )
             omdb_api_key = manual_key or omdb_secret
-        if use_tmdb:
-            if tmdb_secret:
-                st.caption("Naudojamas TMDB raktas is .streamlit/secrets.toml (gali perrasyti zemiau).")
-            manual_tmdb = st.text_input(
-                "TMDB API key",
-                type="password",
-                value="" if tmdb_secret else "",
-            )
-            tmdb_api_key = manual_tmdb or tmdb_secret
         mean_center = True
         k_neighbors = None
         if model_choice == model_cf:
             mean_center = st.checkbox("Mean-center vartotoju reitingus", value=True)
-            k_neighbors = st.slider("K kaimynu (similarity pruning)", 5, 600, 440, 5)
+            k_neighbors = st.slider("K kaimynu (similarity pruning)", 5, 1500, 1400, 25)
         top_n = st.slider("Rekomendaciju skaicius", 5, 50, 10, 1)
         test_size = st.slider("Testo dalis metrikoms", 5, 30, 10, 1) / 100
 
