@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 from src import data_loader, evaluate, models, preprocess, recommend, viz
 
 st.set_page_config(
-    page_title="Filmu rekomendacijos - MovieLens 100K",
+    page_title="Filmu rekomendacijos - MovieLens 1M",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -113,7 +113,16 @@ def train_content_model(
     ratings: pd.DataFrame,
     items: pd.DataFrame,
 ) -> models.ContentTFIDFModel:
-    return models.fit_content_tfidf(ratings, items)
+    return models.fit_content_tfidf(
+        ratings,
+        items,
+        title_ngram_range=(1, 2),
+        title_min_df=1,
+        weight_genre=0.5,
+        weight_title=0.5,
+        weight_pop=1.0,
+        weight_decade=1.0,
+    )
 
 
 def add_posters(items_df: pd.DataFrame) -> pd.DataFrame:
@@ -218,6 +227,9 @@ def render_recommendations(
     top_n: int,
     use_omdb: bool = False,
     omdb_api_key: str | None = None,
+    score_label: str = "Score",
+    score_format: str = "{:.3f}",
+    show_count: bool = False,
 ):
     if recs.empty:
         st.info("Nerasta rekomendaciju su dabartiniais nustatymais.")
@@ -238,22 +250,39 @@ def render_recommendations(
                     poster_url = omdb_url
             if not poster_url:
                 poster_url = f"https://placehold.co/240x360/2b65d9/ffffff?text={quote_plus(row.get('title','Movie')[:30])}"
+            score_val = float(row.get("score", 0.0) or 0.0)
+            score_txt = score_format.format(score_val)
+            extra = ""
+            if show_count and "count" in recs.columns:
+                try:
+                    extra_count = int(row.get("count", 0) or 0)
+                except Exception:
+                    extra_count = 0
+                extra = f'<div style="color:#7f8da6;font-size:12px">Įvertinimų: {extra_count}</div>'
             st.markdown(
                 f"""
                 <div class="rec-card">
                   <img src="{poster_url}" width="150" height="220" />
                   <div style="margin-top:8px;font-weight:700">{row.get('title','(be pavadinimo)')}</div>
-                  <div style="color:#a9b6cb;font-size:12px">Score: {row.get('score', 0):.3f}</div>
+                  <div style="color:#a9b6cb;font-size:12px">{score_label}: {score_txt}</div>
+                  {extra}
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
 
-def split_train_test(ratings: pd.DataFrame, test_size: float = 0.1):
-    train, _, test = preprocess.split_df(
-        ratings, test_size=test_size, val_size=0.0, random_state=42
-    )
+def split_train_test(
+    ratings: pd.DataFrame, test_size: float = 0.1, chronological: bool = False
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if chronological:
+        train, _, test = preprocess.split_df_chronological(
+            ratings, test_size=test_size, val_size=0.0, user_col="user_id", time_col="timestamp"
+        )
+    else:
+        train, _, test = preprocess.split_df(
+            ratings, test_size=test_size, val_size=0.0, random_state=42
+        )
     return train, test
 
 
@@ -262,13 +291,13 @@ def main():
     st.title("Personalizuotos filmu rekomendacijos (MovieLens 1M)")
     st.markdown(
         """
-        <div class="glass">
+          <div class="glass">
           <div class="hero-title">Atrask filmus pagal savo skoni&mdash;nuo bendruomenės balų iki turinio nuotaikų.</div>
-          <div class="hero-sub">Item-KNN ir turinio TF-IDF (zanrai+pavadinimai+pop) be kompiliuojamų priklausomybių.</div>
+          <div class="hero-sub">Item-KNN ir turinio TF-IDF (žanrai + pavadinimas + populiarumas + dešimtmetis) be kompiliuojamų priklausomybių.</div>
           <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
             <span class="metric-pill">MovieLens 1M</span>
-            <span class="metric-pill">Item-KNN p@10=0.0152, r@10=0.0070</span>
-            <span class="metric-pill">TF-IDF p@10=0.0357, r@10=0.0481</span>
+            <span class="metric-pill">Item-KNN p@10=0.0268, r@10=0.0155</span>
+            <span class="metric-pill">TF-IDF p@10=0.0495, r@10=0.0618</span>
           </div>
         </div>
         """,
@@ -276,7 +305,7 @@ def main():
     )
 
     model_cf = "Item-KNN (collaborative)"
-    model_content = "Content TF-IDF (zanrai)"
+    model_content = "Content TF-IDF (žanrai+pavadinimas+pop+dešimtmetis)"
 
     with st.sidebar:
         st.header("⚙️ Nustatymai")
@@ -314,6 +343,11 @@ def main():
             k_neighbors = st.slider("K kaimynu (similarity pruning)", 5, 1500, 1400, 25)
         top_n = st.slider("Rekomendaciju skaicius", 5, 50, 10, 1)
         test_size = st.slider("Testo dalis metrikoms", 5, 30, 10, 1) / 100
+        chrono_split = st.checkbox(
+            "Chronologinis split metrikoms (pagal timestamp)",
+            value=False,
+            help="Realistiškesnis testas: treniruojamės iš senesnių įvykių, testuojame ant naujausių (mažiau 'ateities nutekėjimo').",
+        )
 
     try:
         ratings_df, items_df = load_data(limit, min_user, min_item, use_omdb, omdb_api_key)
@@ -363,7 +397,24 @@ def main():
                     item_id_col="item_id",
                 )
                 st.write(f"Top-{top_n} ({model_choice}) vartotojui {user_choice}:")
-                render_recommendations(recs, top_n, use_omdb=use_omdb, omdb_api_key=omdb_api_key)
+                if model_choice == model_cf:
+                    render_recommendations(
+                        recs,
+                        top_n,
+                        use_omdb=use_omdb,
+                        omdb_api_key=omdb_api_key,
+                        score_label="Prognozuojamas reitingas",
+                        score_format="{:.2f} / 5",
+                    )
+                else:
+                    render_recommendations(
+                        recs,
+                        top_n,
+                        use_omdb=use_omdb,
+                        omdb_api_key=omdb_api_key,
+                        score_label="Panašumas",
+                        score_format="{:.3f}",
+                    )
                 st.download_button(
                     "Atsisiusti rekomendacijas (CSV)",
                     recs.to_csv(index=False).encode("utf-8"),
@@ -371,7 +422,15 @@ def main():
                     mime="text/csv",
                 )
                 st.write(f"Top-{top_n} populiarumo baseline vartotojui {user_choice}:")
-                render_recommendations(pop_recs, top_n, use_omdb=use_omdb, omdb_api_key=omdb_api_key)
+                render_recommendations(
+                    pop_recs,
+                    top_n,
+                    use_omdb=use_omdb,
+                    omdb_api_key=omdb_api_key,
+                    score_label="Vidutinis reitingas",
+                    score_format="{:.2f} / 5",
+                    show_count=True,
+                )
             else:
                 st.info("Paspauskite 'Generuoti rekomendacijas', kad pamatytumete lentele ir baseline.")
 
@@ -380,26 +439,94 @@ def main():
             fig = viz.plot_rating_distribution(ratings_df)
             st.pyplot(fig)
 
-            st.subheader("Metrikos (Precision@k, Recall@k, MAE tik Item-KNN)")
+            st.subheader("Metrikos (ranking @ k)")
+            max_users = int(ratings_df["user_id"].nunique())
+            sample_users_n = st.number_input(
+                "Kiek vartotojų skaičiuoti metrikoms (0 = visi, gali būti lėta)",
+                min_value=0,
+                max_value=max_users,
+                value=min(500, max_users),
+                step=50,
+            )
+
             if st.button("Skaiciuoti metrikas"):
                 with st.spinner("Skaiciuojame..."):
-                    train_df, test_df = split_train_test(ratings_df, test_size=test_size)
+                    train_df, test_df = split_train_test(
+                        ratings_df, test_size=test_size, chronological=chrono_split
+                    )
+                    test_eval = test_df
+                    if sample_users_n and sample_users_n > 0 and not test_df.empty:
+                        users_sample = (
+                            test_df["user_id"]
+                            .drop_duplicates()
+                            .sample(
+                                n=min(int(sample_users_n), int(test_df["user_id"].nunique())),
+                                random_state=42,
+                            )
+                            .tolist()
+                        )
+                        test_eval = test_df[test_df["user_id"].isin(users_sample)]
+
                     if model_choice == model_cf:
-                        metric_model = train_item_model(train_df, mean_center=mean_center, k_neighbors=k_neighbors)
+                        metric_model = train_item_model(
+                            train_df, mean_center=mean_center, k_neighbors=k_neighbors
+                        )
                         rec_fn = recommend.recommend_top_n
                     else:
                         metric_model = train_content_model(train_df, items_df)
                         rec_fn = recommend.recommend_content_tfidf
-                    prec, rec = evaluate.precision_recall_at_k(metric_model, test_df, k=top_n, recommender=rec_fn)
+
+                    model_metrics = evaluate.ranking_metrics_at_k(
+                        metric_model,
+                        train_df=train_df,
+                        test_df=test_eval,
+                        items_df=items_df,
+                        k=top_n,
+                        recommender=rec_fn,
+                    )
+
+                    def _baseline_rec(_m: object, user_raw_id: int, n: int = 10) -> pd.DataFrame:
+                        return recommend.recommend_popularity(train_df, user_raw_id=user_raw_id, n=n)
+
+                    baseline_metrics = evaluate.ranking_metrics_at_k(
+                        None,
+                        train_df=train_df,
+                        test_df=test_eval,
+                        items_df=items_df,
+                        k=top_n,
+                        recommender=_baseline_rec,
+                    )
+
                     mae = None
                     if model_choice == model_cf:
-                        mae = evaluate.mae_on_known(metric_model, test_df)
-                out = {"precision@k": round(prec, 4), "recall@k": round(rec, 4)}
+                        mae = evaluate.mae_on_known(metric_model, test_eval)
+
+                pretty = pd.DataFrame(
+                    [model_metrics, baseline_metrics],
+                    index=[model_choice, "Populiarumo baseline"],
+                )
+                pretty = pretty.rename(
+                    columns={
+                        "precision_at_k": f"Precision@{top_n}",
+                        "recall_at_k": f"Recall@{top_n}",
+                        "hit_rate_at_k": f"HitRate@{top_n}",
+                        "ndcg_at_k": f"nDCG@{top_n}",
+                        "map_at_k": f"MAP@{top_n}",
+                        "coverage_at_k": f"Coverage@{top_n}",
+                        "diversity_at_k": f"Diversity@{top_n}",
+                        "novelty_at_k": f"Novelty@{top_n}",
+                    }
+                ).round(4)
+                st.dataframe(pretty, use_container_width=True)
                 if mae is not None:
-                    out["mae"] = round(mae, 4)
-                st.write(out)
+                    st.write({"MAE (tik Item-KNN)": round(float(mae), 4)})
+
+                split_name = "chronologinis" if chrono_split else "random"
+                st.caption(
+                    f"Split: {split_name}. Relevant: rating >= 3.5. Vartotojai: {test_eval['user_id'].nunique()} / {test_df['user_id'].nunique()}."
+                )
             else:
-                st.caption("Paspausk mygtuka, jei reikia metriku.")
+                st.caption("Paspausk mygtuką, jei reikia metrikų.")
 
     with tab_custom:
         st.subheader("Susikurk savo profilį ir gauk personalias rekomendacijas")
@@ -468,7 +595,24 @@ def main():
                     item_id_col="item_id",
                 )
                 st.success(f"Rekomendacijos profiliui '{profile_name}':")
-                render_recommendations(recs_custom, top_n, use_omdb=use_omdb, omdb_api_key=omdb_api_key)
+                if model_choice == model_cf:
+                    render_recommendations(
+                        recs_custom,
+                        top_n,
+                        use_omdb=use_omdb,
+                        omdb_api_key=omdb_api_key,
+                        score_label="Prognozuojamas reitingas",
+                        score_format="{:.2f} / 5",
+                    )
+                else:
+                    render_recommendations(
+                        recs_custom,
+                        top_n,
+                        use_omdb=use_omdb,
+                        omdb_api_key=omdb_api_key,
+                        score_label="Panašumas",
+                        score_format="{:.3f}",
+                    )
         else:
             st.caption("Pasirink filmus ir spausk mygtuką, kad pamatytum personalias rekomendacijas.")
 
